@@ -9,7 +9,6 @@ class TreeNode {
     }
 }
 
-
 function inorderTraversal(root: TreeNode | null): number[] {
     if (!root) return [];
 
