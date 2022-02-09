@@ -1,0 +1,1 @@
+In this repo I will try to solve some LeetCode problems. Good luck to me)
