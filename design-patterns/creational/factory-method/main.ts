@@ -1,31 +1,12 @@
 // https://refactoring.guru/design-patterns/factory-method
 // https://www.patterns.dev/posts/factory-pattern/
 
-import { LocalStorage, RestApiStorage } from "./storage";
+import { SettingsStateStore, UserStateStore } from "./state-store";
 
-// some random usage example 👇
+const userState = new UserStateStore(); // use rest api to store users
+userState.readAll();
+console.log(userState.data);
 
-const data = [
-	{
-		type: "session",
-		sessionToken: "123456",
-	},
-	{
-		type: "user",
-		name: "Dan",
-		location: "Lviv, Ukraine",
-	},
-];
-
-data.forEach((item) => {
-	switch (item.type) {
-		case "user":
-		case "contact":
-		case "creditCard":
-			new RestApiStorage().save(`/api/${item.type}`, item);
-		case "session":
-		case "uiPreferences":
-		case "languagePreferences":
-			new LocalStorage().save(item.type, item);
-	}
-});
+const settingsState = new SettingsStateStore(); // use local storage to store user ui settings
+settingsState.readAll();
+console.log(settingsState.data);

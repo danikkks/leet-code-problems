@@ -1,99 +1,78 @@
-import {
-	IdentitySerializerDeserializer,
-	ISerializerDeserializer,
-	ToStringSerializerDeserializer,
-} from "./serializer-deserializer";
-
-interface IAppStorage {
-	save(uri: string, value: any): Promise<any>;
-	update(uri: string, value: any): Promise<any>;
-	retrive(uri: string): Promise<any>;
-	delete(uri: string): Promise<any>;
+export interface IStorage {
+  create(uri: string, data: any): Promise<any>;
+  read(uri: string): Promise<any>;
+  update(uri: string, data: any): Promise<any>;
+  delete(uri: string): Promise<any>;
 }
 
-abstract class AppStorage implements IAppStorage {
-	protected serializerDeserializer: ISerializerDeserializer;
+export class LocalStorageAdapter implements IStorage {
+  async create(uri: string, data: any) {
+    localStorage.setItem(uri, data);
+    return data;
+  }
 
-	abstract update(uri: string, value: any): Promise<any>;
-	abstract delete(uri: string): Promise<any>;
-	abstract save(uri: string, value: any): Promise<any>;
-	abstract retrive(uri: string): Promise<any>;
-	abstract createSerializerDeserializer(): ISerializerDeserializer;
+  async read(uri: string) {
+    return localStorage.getItem(uri);
+  }
 
-	constructor() {
-		this.serializerDeserializer = this.createSerializerDeserializer();
-	}
+  async update(uri: string, data: any) {
+    localStorage.setItem(uri, data);
+    return data;
+  }
+
+  async delete(uri: string) {
+    const data = await this.read(uri);
+
+    localStorage.removeItem(uri);
+
+    return data;
+  }
 }
 
-export class LocalStorage extends AppStorage {
-	createSerializerDeserializer() {
-		return new ToStringSerializerDeserializer();
-	}
+export class RestAPIStorageAdapter implements IStorage {
+  baseURL: string;
 
-	async save(uri: string, value: any) {
-		localStorage.setItem(uri, this.serializerDeserializer.serialize(value));
+  constructor(baseURL: string) {
+    this.baseURL = baseURL;
+  }
 
-		return value;
-	}
-	async update(uri: string, value: any) {
-		localStorage.setItem(uri, this.serializerDeserializer.serialize(value));
+  async create(uri: string, data: any) {
+    const response = await fetch(`${this.baseURL}${uri}`, {
+      // use path.join instead of string template literal
+      method: "POST",
+      body: data,
+    });
 
-		return value;
-	}
-	async retrive(uri: string) {
-		return this.serializerDeserializer.deserialize(
-			localStorage.getItem(uri)
-		);
-	}
-	async delete(uri: string) {
-		const item = this.retrive(uri);
+    const payload = await response.json();
 
-		localStorage.removeItem(uri);
+    return payload;
+  }
 
-		return item;
-	}
+  async read(uri: string) {
+    const response = await fetch(`${this.baseURL}${uri}`);
+    const payload = await response.json();
+
+    return payload;
+  }
+
+  async update(uri: string, data: any) {
+    const response = await fetch(`${this.baseURL}${uri}`, {
+      method: "PUT",
+      body: data,
+    });
+
+    const payload = await response.json();
+
+    return payload;
+  }
+
+  async delete(uri: string) {
+    const response = await fetch(`${this.baseURL}${uri}`, {
+      method: "DELETE",
+    });
+
+    const payload = await response.json();
+
+    return payload;
+  }
 }
-
-export class RestApiStorage extends AppStorage {
-	createSerializerDeserializer() {
-		return new IdentitySerializerDeserializer();
-	}
-	async save(uri: string, value: any) {
-		const response = await fetch(uri, {
-			method: "POST",
-			body: this.serializerDeserializer.serialize(value),
-		});
-
-		const body = await response.json();
-
-		return this.serializerDeserializer.deserialize(body);
-	}
-	async update(uri: string, value: any) {
-		const response = await fetch(uri, {
-			method: "PUT",
-			body: this.serializerDeserializer.serialize(value),
-		});
-
-		const body = await response.json();
-
-		return this.serializerDeserializer.deserialize(body);
-	}
-	async retrive(uri: string) {
-		const response = await fetch(uri);
-
-		const body = await response.json();
-
-		return this.serializerDeserializer.deserialize(body);
-	}
-	async delete(uri: string) {
-		const response = await fetch(uri, {
-			method: "DELETE",
-		});
-
-		const body = await response.json();
-
-		return this.serializerDeserializer.deserialize(body);
-	}
-}
-
-// TODO: GraphQLApiStorage extends AppStorage { ... }
